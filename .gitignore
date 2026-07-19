@@ -1,3 +1,7 @@
 data/
 
 venv_skripsi/
+
+test.venv/
+
+.venv/
