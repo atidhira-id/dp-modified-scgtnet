@@ -5,3 +5,7 @@ venv_skripsi/
 test.venv/
 
 .venv/
+
+scgtnet.venv/
+
+results/
