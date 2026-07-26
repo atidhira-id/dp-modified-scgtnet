@@ -7,30 +7,14 @@ from layers.transformer import TransformerEncoderModule
 
 
 def build_modified_scgtnet(
-    T             = 200,    # panjang window (time steps)
-    C             = 16,     # jumlah kanal elektroda
-    n_classes     = 52,     # jumlah kelas gestur
-    msc_filters   = 16,     # jumlah filter Conv2D per cabang MSC
-    gru_units     = 64,     # jumlah hidden units per arah Bi-GRU
-    num_heads     = 4,      # jumlah kepala perhatian MHA
-    dropout_rate  = 0.1,    # dropout rate
+    T             = 40,
+    C             = 16,
+    n_classes     = 52,
+    msc_filters   = 16,
+    gru_units     = 64,
+    num_heads     = 4,
+    dropout_rate  = 0.1,
 ):
-    """
-    Membangun arsitektur Modified SCGTNet.
- 
-    Parameter:
-        T            : panjang window (default 200 untuk NinaPro DB5 200Hz)
-        C            : jumlah kanal elektroda (default 16)
-        n_classes    : jumlah kelas gestur (default 52)
-        msc_filters  : jumlah filter Conv2D per cabang MSC (default 16)
-        gru_units    : hidden units per arah Bi-GRU (default 64)
-        num_heads    : jumlah head MHA (default 4)
-        dropout_rate : dropout rate (default 0.1)
- 
-    Returns:
-        model : tf.keras.Model
-    """
- 
     # d_model = G*2 karena Bi-GRU mengkonkatenasi forward + backward
     d_model = gru_units * 2
  
@@ -50,7 +34,8 @@ def build_modified_scgtnet(
     x = MSCModule(
         filters = msc_filters,
         name    = 'msc_module'
-    )(x)                                         # (B, T, C*3F)
+    )(x)                                       # (B, T, C*3F)
+    x = tf.keras.layers.BatchNormalization()(x)
  
     # ── 3. Bi-GRU ─────────────────────────────────────────
     x = BiGRUModule(
@@ -71,6 +56,8 @@ def build_modified_scgtnet(
     x = layers.GlobalAveragePooling1D(
         name = 'global_avg_pooling'
     )(x)                                         # (B, G*2)
+    
+    x = layers.Dropout(dropout_rate, name="classifier_dropout")(x)
  
     # ── 6. Dense + Softmax (Klasifikasi) ─────────────────
     outputs = layers.Dense(

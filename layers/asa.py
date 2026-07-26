@@ -1,21 +1,8 @@
 import tensorflow as tf
-from tensorflow.keras import layers, Model
+from tensorflow.keras import layers
 
 
 class ASAModule(layers.Layer):
-    """
-    Adaptive Spatial Attention Module.
- 
-    Langkah:
-      1. GAP  — Global Average Pooling sepanjang dimensi T
-      2. GMP  — Global Maximum Pooling sepanjang dimensi T
-      3. Concat GAP dan GMP → (B, 2C)
-      4. MLP  — FC(2C→2C, ReLU) → FC(2C→C, Sigmoid)
-      5. Pembobotan pointwise pada input X
- 
-    Input  : (B, T, C)
-    Output : (B, T, C)
-    """
  
     def __init__(self, n_channels, **kwargs):
         super(ASAModule, self).__init__(**kwargs)
@@ -34,35 +21,33 @@ class ASAModule(layers.Layer):
             activation = 'sigmoid',
             name       = 'asa_fc2'
         )
+        
+        
+    def build(self, input_shape):
+        self.fc1.build((None, self.n_channels * 2))
+        self.fc2.build((None, self.n_channels * 2))
+
+        super().build(input_shape)
+        
  
     def call(self, x, training=False):
-        # x shape: (B, T, C)
- 
         # GAP: rata-rata sepanjang dimensi T
-        # (B, C)
-        gap = tf.reduce_mean(x, axis=1)          
+        gap = tf.reduce_mean(x, axis=1)
  
         # GMP: maksimum sepanjang dimensi T
-        # (B, C)
-        gmp = tf.reduce_max(x, axis=1)           
+        gmp = tf.reduce_max(x, axis=1)
  
         # Konkatenasi GAP dan GMP
-        # (B, 2C)
-        z = tf.concat([gap, gmp], axis=-1)       
+        z = tf.concat([gap, gmp], axis=-1)
  
         # MLP
-        # (B, 2C)
         z = self.fc1(z)
-        # (B, C)
-        w_attn = self.fc2(z)                     
+        w_attn = self.fc2(z)
  
         # Pembobotan pointwise via broadcasting
-        # w_attn: (B, C) → expand → (B, 1, C) → broadcast ke (B, T, C)
-        # (B, 1, C)
-        w_attn = tf.expand_dims(w_attn, axis=1)  
+        w_attn = tf.expand_dims(w_attn, axis=1)
 
-        # (B, T, C)
-        x_out  = x * w_attn                      
+        x_out  = x * w_attn
         return x_out
  
     def get_config(self):

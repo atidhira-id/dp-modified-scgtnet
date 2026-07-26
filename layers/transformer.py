@@ -1,23 +1,8 @@
 import tensorflow as tf
-from tensorflow.keras import layers, Model
+from tensorflow.keras import layers
 
 
 class TransformerEncoderModule(layers.Layer):
-    """
-    Transformer Encoder Module.
- 
-    Komponen:
-      A. Multi-Head Attention (MHA)
-         - 4 kepala perhatian
-         - Residual connection + Layer Normalization
-      B. Feed-Forward Network (FFN)
-         - FC(d → 4d, Swish) → Dropout → FC(4d → d)
-         - Residual connection + Layer Normalization
- 
-    Input  : (B, T, G*2)
-    Output : (B, T, G*2)
-    """
- 
     def __init__(self, d_model, num_heads=4, dropout_rate=0.1, **kwargs):
         super(TransformerEncoderModule, self).__init__(**kwargs)
         self.d_model      = d_model
@@ -51,10 +36,30 @@ class TransformerEncoderModule(layers.Layer):
             name       = 'ffn_fc2'
         )
         self.layernorm2   = layers.LayerNormalization(epsilon=1e-6, name='ln_ffn')
+        
+        
+    def build(self, input_shape):
+        self.mha.build(
+            query_shape=input_shape,
+            value_shape=input_shape,
+            key_shape=input_shape
+        )
+
+        self.dropout_mha.build(input_shape)
+        self.layernorm1.build(input_shape)
+        self.ffn_fc1.build(input_shape)
+        self.dropout_ffn.build(
+            (input_shape[0], input_shape[1], self.d_model * 4)
+        )
+        self.ffn_fc2.build(
+            (input_shape[0], input_shape[1], self.d_model * 4)
+        )
+        self.layernorm2.build(input_shape)
+
+        super().build(input_shape)
  
-    def call(self, x, training=False):
-        # x shape: (B, T, G*2) = (B, T, d_model)
  
+    def call(self, x, training=None):
         # ── A. Multi-Head Attention ───────────────────────
         # Query, Key, Value semuanya dari x (self-attention)
         attn_out = self.mha(
@@ -62,21 +67,23 @@ class TransformerEncoderModule(layers.Layer):
             key     = x,
             value   = x,
             training= training
-        )                                        # (B, T, d_model)
+        )
+        
         attn_out = self.dropout_mha(attn_out, training=training)
  
         # Residual connection + Layer Normalization
-        x = self.layernorm1(x + attn_out)       # (B, T, d_model)
+        x = self.layernorm1(x + attn_out)
  
         # ── B. Feed-Forward Network ───────────────────────
-        ffn_out = self.ffn_fc1(x)               # (B, T, d_model*4)
+        ffn_out = self.ffn_fc1(x)
         ffn_out = self.dropout_ffn(ffn_out, training=training)
-        ffn_out = self.ffn_fc2(ffn_out)         # (B, T, d_model)
+        ffn_out = self.ffn_fc2(ffn_out)
  
         # Residual connection + Layer Normalization
-        x = self.layernorm2(x + ffn_out)        # (B, T, d_model)
+        x = self.layernorm2(x + ffn_out)
  
         return x
+ 
  
     def get_config(self):
         config = super().get_config()

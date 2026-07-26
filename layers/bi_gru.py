@@ -1,19 +1,8 @@
 import tensorflow as tf
-from tensorflow.keras import layers, Model
+from tensorflow.keras import layers
 
 
 class BiGRUModule(layers.Layer):
-    """
-    Bidirectional GRU Module.
- 
-    Langkah:
-      1. Bidirectional GRU — forward + backward secara paralel
-      2. Konkatenasi output forward dan backward → (B, T, G*2)
-      3. Layer Normalization
- 
-    Input  : (B, T, C*3F)
-    Output : (B, T, G*2)
-    """
  
     def __init__(self, gru_units=64, dropout_rate=0.1, **kwargs):
         super(BiGRUModule, self).__init__(**kwargs)
@@ -31,7 +20,7 @@ class BiGRUModule(layers.Layer):
                 recurrent_dropout= 0.0,
                 name             = 'gru_layer'
             ),
-            merge_mode = 'concat',    # output: (B, T, G*2)
+            merge_mode = 'concat',
             name       = 'bigru'
         )
  
@@ -41,14 +30,24 @@ class BiGRUModule(layers.Layer):
             name    = 'bigru_layernorm'
         )
  
-    def call(self, x, training=False):
-        # x shape: (B, T, C*3F)
  
-        # Langkah 1 & 2 — Bi-GRU + konkatenasi otomatis
-        h = self.bigru(x, training=training)     # (B, T, G*2)
+    def build(self, input_shape):
+        self.bigru.build(input_shape)
+        output_shape = (
+            input_shape[0],
+            input_shape[1],
+            self.gru_units * 2
+        )
+        self.layer_norm.build(output_shape)
+        super().build(input_shape)
+        
  
-        # Langkah 3 — Layer Normalization
-        h_norm = self.layer_norm(h)              # (B, T, G*2)
+    def call(self, x, training=None):
+        # Bi-GRU + konkatenasi otomatis
+        h = self.bigru(x, training=training)
+ 
+        # Layer Normalization
+        h_norm = self.layer_norm(h)
  
         return h_norm
  
