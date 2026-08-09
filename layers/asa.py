@@ -31,10 +31,7 @@ class ASAModule(layers.Layer):
         
  
     def call(self, x, training=False):
-        # GAP: rata-rata sepanjang dimensi T
         gap = tf.reduce_mean(x, axis=1)
- 
-        # GMP: maksimum sepanjang dimensi T
         gmp = tf.reduce_max(x, axis=1)
  
         # Konkatenasi GAP dan GMP
