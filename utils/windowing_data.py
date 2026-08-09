@@ -3,8 +3,8 @@ import scipy.io as sio
 import os
 
 
-WINDOW_SIZE = 40
-STEP_SIZE   = 20
+WINDOW_SIZE = 100
+STEP_SIZE   = 50
 
 def windowing(emg, stimulus, window_size=WINDOW_SIZE, step_size=STEP_SIZE):
     N = emg.shape[0]
@@ -57,8 +57,8 @@ def windowing_data(subject_id, data_dir, output_dir):
     
 
 if __name__ == '__main__':
-    data_dir = 'data/merge'
-    output_dir = 'data/windows'
+    data_dir = 'data\merge'
+    output_dir = f'data\windows\{WINDOW_SIZE}'
 
     for subject_id in range(1, 11):
         windowing_data(subject_id, data_dir, output_dir)
