@@ -6,7 +6,7 @@ test.venv/
 
 .venv/
 
-scgtnet.venv/
+.scgtnet_venv/
 
 results/
 
