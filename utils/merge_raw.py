@@ -50,8 +50,8 @@ def merge_per_subject(subject_id, data_dir, output_dir):
     output_path = os.path.join(output_dir, f'S{subject_id}_merge.mat')
     sio.savemat(output_path, {
         'emg': emg_merge,
-        'stimulus': stim_merge
-    })
+        'stimulus': stim_merge.astype(np.uint8)
+    }, do_compression=True)
     print(f"  File saved: {output_path}")
 
 # Run for all 10 subject
